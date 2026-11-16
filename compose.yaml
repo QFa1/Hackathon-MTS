@@ -1,0 +1,42 @@
+services:
+  extractor:
+    image: compactfact-qwen3-v23:catalog-v1
+    build:
+      context: ./app
+      dockerfile: Dockerfile.release
+      args:
+        TORCH_VERSION: "2.14.1"
+        TORCH_INDEX_URL: https://download.pytorch.org/whl/cpu
+    ports:
+      - "127.0.0.1:${MWS_PORT:-8000}:8000"
+    environment:
+      MWS_MODE: real
+      MWS_PIPELINE_FACTORY: ml.qwen.serving:factory
+      MTS_MODEL_DIR: /models/export
+      MTS_MODEL_BASE_PATH: /models/base
+      MTS_MODEL_DEVICE: cpu
+      MWS_MODEL_MAX_CALL_SECONDS: 600
+      MWS_MODEL_ID: qwen06-temporal-v23-parent500-plus0
+      MWS_ARTIFACT_SHA256: a1cb70e22b80b31096539c86265278bfce5ab1aa83477030cf83216825554385
+      MWS_TORCH_VERSION: '2.14.1'
+      HF_HUB_OFFLINE: '1'
+      HF_HOME: /tmp/hf-cache
+    volumes:
+      - type: bind
+        source: ./models/export
+        target: /models/export
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./models/base
+        target: /models/base
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=256m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 11m
